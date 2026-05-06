@@ -2,7 +2,10 @@
 
 MCP server for [Transmission](https://transmissionbt.com/): tools talk to the daemon **only** through its JSON-RPC HTTP API (same pattern as the web UI). No shell access.
 
-Releases: [CHANGELOG.md](CHANGELOG.md). Contributing: [Contributing.md](Contributing.md). Quick path: [QUICKSTART.md](QUICKSTART.md). Docker: [docs/docker.md](docs/docker.md).
+Releases: [CHANGELOG.md](CHANGELOG.md). 
+Contributing: [Contributing.md](Contributing.md). 
+Quickstart: [QUICKSTART.md](QUICKSTART.md). 
+Docker: [docs/docker.md](docs/docker.md).
 
 ## What this MCP server does (and what it does not)
 
