@@ -25,6 +25,7 @@ export class TransmissionRpcClient {
       rpcUrl: string;
       rpcUser: string;
       rpcPassword: string;
+      rpcTimeoutMs: number | undefined;
     },
     fetchFn: FetchLike,
   ) {
@@ -54,11 +55,29 @@ export class TransmissionRpcClient {
         headers.set("X-Transmission-Session-Id", this.sessionId);
       }
 
-      const res = await this.fetchFn(this.options.rpcUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
+      const signal =
+        this.options.rpcTimeoutMs !== undefined
+          ? AbortSignal.timeout(this.options.rpcTimeoutMs)
+          : undefined;
+
+      let res: Response;
+      try {
+        res = await this.fetchFn(this.options.rpcUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+          signal,
+        });
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") {
+          const ms = this.options.rpcTimeoutMs;
+          throw new TransmissionRpcError(
+            `Transmission RPC request timed out${ms !== undefined ? ` after ${String(ms)}ms` : ""}`,
+            408,
+          );
+        }
+        throw e;
+      }
 
       const json: unknown = await res.json().catch(() => null);
       return { res, json };

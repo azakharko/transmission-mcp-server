@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Dockerfile`, `docker-compose.yml`, `.env.example`, and [docs/docker.md](docs/docker.md) for Linux host-network runs.
+- **Publishing:** `files` whitelist, `repository` / `bugs` / `homepage`, `prepare` (build on install) and `prepublishOnly` (lint + test before publish), `typecheck` and `test:coverage` scripts. [LICENSE](LICENSE) copyright notice completed.
+- **CI:** GitHub Actions workflow (lint, typecheck, test + coverage, build, Docker build). [Dependabot](.github/dependabot.yml) for npm and Actions.
+- **RPC reliability:** `TRANSMISSION_RPC_TIMEOUT_MS` (default 60s; `0` disables) with `AbortSignal.timeout` in [`TransmissionRpcClient`](src/transmission/rpcClient.ts).
+- **Listing:** `transmission_list_torrents` optional `ids` and `limit` (truncation metadata when capped).
+- **Validation:** Zod parsing for `torrent-add` RPC arguments in [`src/transmission/schemas.ts`](src/transmission/schemas.ts).
+- **Docs:** [docs/supply-chain.md](docs/supply-chain.md). **Docker:** builder/runner use `npm ci --ignore-scripts` so `prepare` does not run before sources are copied.
+- **Tests:** coverage thresholds (v8), schema and listTorrents unit tests, RPC timeout test.
 
 ## [1.0.0] - 2026-05-06
 

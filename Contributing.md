@@ -9,10 +9,11 @@ Thank you for helping improve **transmission-mcp-server**.
 
 ```bash
 npm install
-npm run build
 npm test
 npm run lint
 ```
+
+`npm install` runs **`prepare`** (which runs `npm run build`) so `dist/` exists for local runs and for installs from git; CI uses `npm ci` the same way.
 
 To verify the container image locally:
 

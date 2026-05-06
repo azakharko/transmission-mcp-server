@@ -4,6 +4,8 @@ The server is a **stdio** MCP process: something must attach **stdin/stdout** (y
 
 This project enforces a **loopback-only** `TRANSMISSION_RPC_URL` (`127.0.0.1` or `::1`). Inside a container, the host’s `127.0.0.1` is **not** the host unless you use **host networking** (Linux) or an equivalent setup.
 
+The repository **Dockerfile** runs **`npm ci --ignore-scripts`** before copying `src/` so the package **`prepare`** hook does not try to build too early; it then runs **`npm run build`** explicitly. The runtime stage uses **`npm ci --omit=dev --ignore-scripts`**.
+
 ## Linux (recommended): host network
 
 Transmission should listen on the host at `127.0.0.1` (see [README](../README.md#ubuntu-and-transmission-hardening)).

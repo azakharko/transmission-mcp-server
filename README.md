@@ -95,6 +95,7 @@ Full guide: [docs/docker.md](docs/docker.md).
 | `TRANSMISSION_RPC_PASSWORD` | **Yes** | RPC password (`rpc-password`). |
 | `TRANSMISSION_ALLOWED_DOWNLOAD_DIRS` | **Yes** | Comma-separated **absolute** paths allowed for `download-dir` on add. Normalized and deduplicated at startup. |
 | `TRANSMISSION_DEFAULT_DOWNLOAD_DIR` | Sometimes | Required when **multiple** dirs are allowlisted and `transmission_add_torrent` omits `download_dir`. Must be listed in `TRANSMISSION_ALLOWED_DOWNLOAD_DIRS`. If only **one** dir is allowlisted, it is used when omitted. |
+| `TRANSMISSION_RPC_TIMEOUT_MS` | No | Per-request HTTP timeout in ms. Default **60000**. Minimum **1000** when set to a positive value. Set **0** to disable timeouts (not recommended). Maximum **300000** (5 minutes). |
 
 **Secrets:** pass via the MCP host environment (not tool arguments). Do **not** put credentials in URL userinfo.
 
@@ -103,9 +104,9 @@ Full guide: [docs/docker.md](docs/docker.md).
 - **Loopback RPC URL** is enforced in config; configure the daemon with **`rpc-bind-address`** on localhost and **RPC auth** enabled.
 - **Download paths** are allowlisted; adds cannot target arbitrary filesystem locations through this server.
 - **Remove + delete data** requires `confirm_delete_local_data: true` when `delete_local_data` is true.
-- **Mutation audit** lines on **stderr** (`type: "transmission_mcp_mutation"`) for add / start / stop / remove; passwords are not logged.
+- **Mutation audit** lines on **stderr** (`type: "transmission_mcp_mutation"`) for add / start / stop / remove; passwords are not logged. Startup warnings may include **allowlisted path lists**; treat shared stderr as potentially sensitive.
 - **Stdout** must stay clean for MCP; do not pipe extra data into the server’s stdout.
-- Deeper checklist: [docs/security.md](docs/security.md).
+- Deeper checklist: [docs/security.md](docs/security.md). Dependency posture: [docs/supply-chain.md](docs/supply-chain.md).
 
 ## Run (stdio)
 
@@ -162,12 +163,21 @@ Tools are invoked by the MCP client as `tools/call` with a `name` and `arguments
 
 | Tool | Arguments (JSON shape) | Notes |
 |------|------------------------|--------|
-| `transmission_list_torrents` | `{}` | Lists torrents (id, name, status, progress, rates, sizes, `downloadDir`, errors, …). |
+| `transmission_list_torrents` | `{}` or see below | Lists torrents. Optional `"ids": [1, 2]` to query specific ids. Optional `"limit": 100` caps how many are returned; response may include `"truncated": true` and `"total_count"` when capped. Large daemons: use **`ids`** or **`limit`** so responses stay small for MCP clients. |
 | `transmission_add_torrent` | `{ "url": "https://…/file.torrent" }` or magnet string | Optional `"download_dir": "/absolute/path"` if allowlist/default rules require it. |
 | `transmission_start_torrent` | `{ "id": 1 }` | Numeric torrent id. |
 | `transmission_stop_torrent` | `{ "id": 1 }` | |
 | `transmission_remove_torrent` | `{ "id": 1, "delete_local_data": false }` | If `"delete_local_data": true`, also set `"confirm_delete_local_data": true` or the tool errors without removing. |
 | `transmission_get_session` | `{}` | Read-only session fields. |
+
+Example **`transmission_list_torrents`** (subset + cap):
+
+```json
+{
+  "ids": [1, 2, 3],
+  "limit": 50
+}
+```
 
 Example **`transmission_add_torrent`** arguments:
 
@@ -213,8 +223,8 @@ Architecture: [docs/architecture.md](docs/architecture.md).
 ## Future development
 
 - Optional in-process **SSE** or **streamable HTTP** MCP transport for remote access (today only stdio is implemented).
-- Published image on a container registry and a documented **npm publish** flow with prebuilt `dist/`.
-- Richer listing (pagination, field selection) and optional session/torrent tuning tools, if demand warrants.
+- Published image on a container registry and a documented **npm publish** cadence with the current **`files`** / **`prepare`** layout.
+- Richer listing (cursor pagination, field selection) and optional session/torrent tuning tools, if demand warrants.
 
 ## License
 

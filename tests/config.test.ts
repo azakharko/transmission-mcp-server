@@ -41,4 +41,44 @@ describe("loadConfig", () => {
     });
     expect(cfg.allowedDownloadDirs).toEqual([dir]);
   });
+
+  it("defaults RPC timeout to 60000ms", () => {
+    const cfg = loadConfig({
+      TRANSMISSION_RPC_USER: "u",
+      TRANSMISSION_RPC_PASSWORD: "p",
+      TRANSMISSION_ALLOWED_DOWNLOAD_DIRS: "/d",
+    });
+    expect(cfg.rpcTimeoutMs).toBe(60_000);
+  });
+
+  it("disables RPC timeout when set to 0", () => {
+    const cfg = loadConfig({
+      TRANSMISSION_RPC_USER: "u",
+      TRANSMISSION_RPC_PASSWORD: "p",
+      TRANSMISSION_ALLOWED_DOWNLOAD_DIRS: "/d",
+      TRANSMISSION_RPC_TIMEOUT_MS: "0",
+    });
+    expect(cfg.rpcTimeoutMs).toBeUndefined();
+  });
+
+  it("parses custom RPC timeout", () => {
+    const cfg = loadConfig({
+      TRANSMISSION_RPC_USER: "u",
+      TRANSMISSION_RPC_PASSWORD: "p",
+      TRANSMISSION_ALLOWED_DOWNLOAD_DIRS: "/d",
+      TRANSMISSION_RPC_TIMEOUT_MS: "120000",
+    });
+    expect(cfg.rpcTimeoutMs).toBe(120_000);
+  });
+
+  it("rejects RPC timeout below 1000ms when not 0", () => {
+    expect(() =>
+      loadConfig({
+        TRANSMISSION_RPC_USER: "u",
+        TRANSMISSION_RPC_PASSWORD: "p",
+        TRANSMISSION_ALLOWED_DOWNLOAD_DIRS: "/d",
+        TRANSMISSION_RPC_TIMEOUT_MS: "500",
+      }),
+    ).toThrow(/at least 1000/);
+  });
 });

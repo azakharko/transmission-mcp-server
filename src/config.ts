@@ -121,18 +121,47 @@ export type AppConfig = {
   rpcPassword: string;
   allowedDownloadDirs: string[];
   defaultDownloadDir: string | undefined;
+  /** Per-request HTTP timeout; `undefined` disables (no AbortSignal). */
+  rpcTimeoutMs: number | undefined;
 };
+
+function parseRpcTimeoutMs(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.trim() === "") {
+    return 60_000;
+  }
+  const t = raw.trim();
+  if (t === "0") {
+    return undefined;
+  }
+  const n = Number.parseInt(t, 10);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error(
+      "TRANSMISSION_RPC_TIMEOUT_MS must be 0 (disable), empty (default 60000), or a positive integer (milliseconds)",
+    );
+  }
+  if (n > 0 && n < 1_000) {
+    throw new Error("TRANSMISSION_RPC_TIMEOUT_MS must be at least 1000 when enabled");
+  }
+  if (n > 300_000) {
+    throw new Error("TRANSMISSION_RPC_TIMEOUT_MS must not exceed 300000 (5 minutes)");
+  }
+  return n;
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const rpcUrl = normalizeTransmissionRpcUrl(
     env["TRANSMISSION_RPC_URL"] ?? "http://127.0.0.1:9091/transmission/rpc",
   );
 
-  return configSchema.parse({
+  const rpcTimeoutMs = parseRpcTimeoutMs(env["TRANSMISSION_RPC_TIMEOUT_MS"]);
+
+  const base = configSchema.parse({
     rpcUrl,
     rpcUser: env["TRANSMISSION_RPC_USER"] ?? "",
     rpcPassword: env["TRANSMISSION_RPC_PASSWORD"] ?? "",
     allowedDownloadDirs: env["TRANSMISSION_ALLOWED_DOWNLOAD_DIRS"] ?? "",
     defaultDownloadDirRaw: env["TRANSMISSION_DEFAULT_DOWNLOAD_DIR"],
   });
+
+  return { ...base, rpcTimeoutMs };
 }

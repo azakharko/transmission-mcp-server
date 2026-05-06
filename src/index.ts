@@ -2,11 +2,11 @@
 
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 const packageVersion = (
   createRequire(import.meta.url)("../package.json") as { version: string }
 ).version;
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { registerTransmissionTools } from "./mcp/tools.js";
 import { TransmissionRpcClient } from "./transmission/rpcClient.js";
@@ -56,6 +56,7 @@ async function main(): Promise<void> {
       rpcUrl: config.rpcUrl,
       rpcUser: config.rpcUser,
       rpcPassword: config.rpcPassword,
+      rpcTimeoutMs: config.rpcTimeoutMs,
     },
     globalThis.fetch,
   );

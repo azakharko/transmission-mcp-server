@@ -18,10 +18,35 @@ export const LIST_TORRENT_FIELDS = [
   "doneDate",
 ] as const;
 
-export async function listTorrents(client: TransmissionRpcClient) {
-  return client.call<{ torrents: Record<string, unknown>[] }>("torrent-get", {
+export type ListTorrentsOptions = {
+  ids?: number[];
+  /** Max number of torrents to return after fetch (Transmission has no native limit). */
+  limit?: number;
+};
+
+export async function listTorrents(
+  client: TransmissionRpcClient,
+  options?: ListTorrentsOptions,
+) {
+  const args: Record<string, unknown> = {
     fields: [...LIST_TORRENT_FIELDS],
-  });
+  };
+  if (options?.ids !== undefined && options.ids.length > 0) {
+    args.ids = options.ids;
+  }
+  const raw = await client.call<{ torrents?: Record<string, unknown>[] }>("torrent-get", args);
+  const torrents = Array.isArray(raw.torrents) ? raw.torrents : [];
+  const totalCount = torrents.length;
+
+  if (options?.limit !== undefined && options.limit > 0 && torrents.length > options.limit) {
+    return {
+      torrents: torrents.slice(0, options.limit),
+      truncated: true as const,
+      total_count: totalCount,
+    };
+  }
+
+  return { torrents };
 }
 
 export async function addTorrent(

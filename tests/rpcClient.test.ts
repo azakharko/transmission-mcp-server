@@ -26,6 +26,7 @@ describe("TransmissionRpcClient", () => {
         rpcUrl: "http://127.0.0.1:1/transmission/rpc",
         rpcUser: "u",
         rpcPassword: "p",
+        rpcTimeoutMs: undefined,
       },
       fetchMock as typeof fetch,
     );
@@ -61,6 +62,7 @@ describe("TransmissionRpcClient", () => {
         rpcUrl: "http://127.0.0.1:1/transmission/rpc",
         rpcUser: "u",
         rpcPassword: "p",
+        rpcTimeoutMs: undefined,
       },
       fetchMock as typeof fetch,
     );
@@ -84,6 +86,7 @@ describe("TransmissionRpcClient", () => {
         rpcUrl: "http://127.0.0.1:1/transmission/rpc",
         rpcUser: "u",
         rpcPassword: "p",
+        rpcTimeoutMs: undefined,
       },
       fetchMock as typeof fetch,
     );
@@ -110,5 +113,39 @@ describe("TransmissionRpcClient", () => {
     };
     expect(body.method).toBe("torrent-add");
     expect(body.arguments["download-dir"]).toBe("/d");
+  });
+
+  it("throws TransmissionRpcError when request hits timeout", async () => {
+    const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        const signal = init?.signal;
+        if (signal === undefined) {
+          reject(new Error("expected AbortSignal"));
+          return;
+        }
+        const onAbort = (): void => {
+          reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+        };
+        if (signal.aborted) {
+          onAbort();
+          return;
+        }
+        signal.addEventListener("abort", onAbort);
+      });
+    });
+
+    const client = new TransmissionRpcClient(
+      {
+        rpcUrl: "http://127.0.0.1:1/transmission/rpc",
+        rpcUser: "u",
+        rpcPassword: "p",
+        rpcTimeoutMs: 200,
+      },
+      fetchMock,
+    );
+
+    await expect(client.call("session-get", {})).rejects.toMatchObject({
+      name: "TransmissionRpcError",
+    });
   });
 });

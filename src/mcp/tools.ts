@@ -4,6 +4,10 @@ import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import { logMutation } from "../log/mutationLog.js";
 import * as ops from "../transmission/operations.js";
+import {
+  getTorrentIdFromAddResult,
+  parseAddTorrentArguments,
+} from "../transmission/schemas.js";
 import { TransmissionRpcClient, TransmissionRpcError } from "../transmission/rpcClient.js";
 import { resolveEffectiveDownloadDir } from "../validators/paths.js";
 import { assertDeleteLocalDataConfirmed } from "../validators/removeTorrent.js";
@@ -31,11 +35,27 @@ export function registerTransmissionTools(
     "transmission_list_torrents",
     {
       description:
-        "List torrents in Transmission with id, name, status, progress, rates, sizes, and download directory.",
+        "List torrents (id, name, status, progress, rates, sizes, downloadDir, …). Optional ids filters to specific torrents; optional limit caps response size (see total_count/truncated when truncated).",
+      inputSchema: {
+        ids: z
+          .array(z.number().int().positive())
+          .optional()
+          .describe("If set, only fetch these torrent ids (Transmission torrent-get ids)"),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(10_000)
+          .optional()
+          .describe("Max torrents to return after fetch; omit for full list"),
+      },
     },
-    async () => {
+    async (input) => {
       try {
-        const args = await ops.listTorrents(client);
+        const args = await ops.listTorrents(client, {
+          ids: input.ids,
+          limit: input.limit,
+        });
         return jsonResult(args);
       } catch (e) {
         if (e instanceof TransmissionRpcError) {
@@ -73,17 +93,26 @@ export function registerTransmissionTools(
           defaultDir: config.defaultDownloadDir,
         });
         const result = await ops.addTorrent(client, source, downloadDir);
-        const id =
-          (result["torrent-added"]?.["id"] as number | undefined) ??
-          (result["torrent-duplicate"]?.["id"] as number | undefined);
+        const parsed = parseAddTorrentArguments(result);
+        if (!parsed.ok) {
+          const msg = `Invalid torrent-add response: ${parsed.message}`;
+          logMutation("add_torrent", {
+            ok: false,
+            sourceType: source.startsWith("magnet:") ? "magnet" : "url",
+            download_dir: downloadDir,
+            error: msg,
+          });
+          return errorResult(msg);
+        }
+        const id = getTorrentIdFromAddResult(parsed.value);
         logMutation("add_torrent", {
           ok: true,
           sourceType: source.startsWith("magnet:") ? "magnet" : "url",
           download_dir: downloadDir,
           torrent_id: id,
-          duplicate: result["torrent-duplicate"] !== undefined,
+          duplicate: parsed.value["torrent-duplicate"] !== undefined,
         });
-        return jsonResult(result);
+        return jsonResult(parsed.value);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logMutation("add_torrent", {
