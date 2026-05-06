@@ -14,6 +14,12 @@ npm test
 npm run lint
 ```
 
+To verify the container image locally:
+
+```bash
+docker build -t transmission-mcp-server:local .
+```
+
 ## Making changes
 
 - Keep the security model intact: **no shell execution**, only HTTP JSON-RPC to Transmission on a **loopback** URL with **required** credentials.

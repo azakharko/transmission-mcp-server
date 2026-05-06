@@ -59,3 +59,8 @@ sequenceDiagram
 
 - **Read:** `transmission_list_torrents`, `transmission_get_session` (no mutation log line).
 - **Write:** `transmission_add_torrent`, `transmission_start_torrent`, `transmission_stop_torrent`, `transmission_remove_torrent` (each emits a **mutation** log line on stderr when invoked, success or failure).
+
+## Container image
+
+The same Node process can run inside an OCI image built from the repository `Dockerfile`. Networking must still satisfy **loopback-only** `TRANSMISSION_RPC_URL` rules—typically **`--network host`** on Linux. See [docker.md](docker.md).
+

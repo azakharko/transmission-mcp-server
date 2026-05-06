@@ -37,6 +37,10 @@ flowchart LR
 - **Stderr:** warnings (session/allowlist mismatch, session probe failures) and mutation audit lines.
 - Passwords and RPC secrets are **never** included in mutation payloads.
 
+## Docker deployments
+
+Running the server in a container does not change the trust model: it still speaks only HTTP JSON-RPC to Transmission. You must preserve **loopback-only** RPC URLs from the container’s view—typically **`network_mode: host`** on Linux. See [docker.md](docker.md).
+
 ## Operational notes
 
 - AI clients with tool access can still **instruct Transmission to download arbitrary http(s) content** you validated as URLs—but they cannot bypass scheme checks or download-dir allowlists through this server.

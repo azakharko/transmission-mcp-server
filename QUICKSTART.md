@@ -22,13 +22,28 @@ You may see **409** first; the response should include `X-Transmission-Session-I
 
 ## 2. Build the server
 
+### From source
+
 ```bash
 cd transmission-mcp-server
 npm install
 npm run build
 ```
 
-## 3. Set environment and run
+### With Docker (Linux, host network)
+
+Requires a `.env` file (see `.env.example`). Transmission must be on the host at `127.0.0.1` with RPC enabled.
+
+```bash
+cp .env.example .env
+# edit .env
+docker compose build
+docker compose run --rm -i transmission-mcp
+```
+
+See [docs/docker.md](docs/docker.md) for `docker run`, MCP clients that spawn Docker, and macOS/Windows caveats.
+
+## 3. Set environment and run (source)
 
 Pick an **absolute** download directory that Transmission is allowed to use and that matches your allowlist string exactly after normalization:
 
@@ -48,7 +63,7 @@ export TRANSMISSION_DEFAULT_DOWNLOAD_DIR='/var/lib/transmission-daemon/downloads
 
 ## 4. Wire your MCP client
 
-Point your client at `node` and `dist/index.js`, and pass the same variables in the MCP `env` block (see [README.md](README.md)).
+Point your client at `node` and `dist/index.js`, and pass the same variables in the MCP `env` block (see [README.md](README.md)). If you run the server in Docker with stdio, see [docs/docker.md](docs/docker.md) for example `docker` `command` / `args`.
 
 ## 5. Sanity-check a tool
 
