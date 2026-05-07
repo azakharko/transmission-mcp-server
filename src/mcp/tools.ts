@@ -1,5 +1,4 @@
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { FastMCP, UserError } from "fastmcp";
 import { z } from "zod";
 import type { AppConfig } from "../config.js";
 import { logMutation } from "../log/mutationLog.js";
@@ -13,77 +12,64 @@ import { resolveEffectiveDownloadDir } from "../validators/paths.js";
 import { assertDeleteLocalDataConfirmed } from "../validators/removeTorrent.js";
 import { assertValidTorrentSource } from "../validators/torrentSource.js";
 
-function jsonResult(value: unknown): CallToolResult {
-  return {
-    content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
-  };
+function jsonText(value: unknown): string {
+  return JSON.stringify(value, null, 2);
 }
 
-function errorResult(message: string): CallToolResult {
-  return {
-    isError: true,
-    content: [{ type: "text", text: message }],
-  };
-}
-
-export function registerTransmissionTools(
-  mcp: McpServer,
+export function addTransmissionTools(
+  server: FastMCP,
   client: TransmissionRpcClient,
   config: AppConfig,
 ): void {
-  mcp.registerTool(
-    "transmission_list_torrents",
-    {
-      description:
-        "List torrents (id, name, status, progress, rates, sizes, downloadDir, …). Optional ids filters to specific torrents; optional limit caps response size (see total_count/truncated when truncated).",
-      inputSchema: {
-        ids: z
-          .array(z.number().int().positive())
-          .optional()
-          .describe("If set, only fetch these torrent ids (Transmission torrent-get ids)"),
-        limit: z
-          .number()
-          .int()
-          .min(1)
-          .max(10_000)
-          .optional()
-          .describe("Max torrents to return after fetch; omit for full list"),
-      },
-    },
-    async (input) => {
+  server.addTool({
+    name: "transmission_list_torrents",
+    description:
+      "List torrents (id, name, status, progress, rates, sizes, downloadDir, …). Optional ids filters to specific torrents; optional limit caps response size (see total_count/truncated when truncated).",
+    parameters: z.object({
+      ids: z
+        .array(z.number().int().positive())
+        .optional()
+        .describe("If set, only fetch these torrent ids (Transmission torrent-get ids)"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(10_000)
+        .optional()
+        .describe("Max torrents to return after fetch; omit for full list"),
+    }),
+    execute: async (input) => {
       try {
         const args = await ops.listTorrents(client, {
           ids: input.ids,
           limit: input.limit,
         });
-        return jsonResult(args);
+        return jsonText(args);
       } catch (e) {
         if (e instanceof TransmissionRpcError) {
-          return errorResult(
+          throw new UserError(
             `Failed to list torrents: ${e.message}${e.rpcMessage ? ` (${e.rpcMessage})` : ""}`,
           );
         }
         throw e;
       }
     },
-  );
+  });
 
-  mcp.registerTool(
-    "transmission_add_torrent",
-    {
-      description:
-        "Add a torrent from an http(s) .torrent URL or magnet link. download_dir must be allowlisted if multiple dirs are configured.",
-      inputSchema: {
-        url: z.string().describe("Torrent URL (http/https) or magnet:? link"),
-        download_dir: z
-          .string()
-          .optional()
-          .describe(
-            "Absolute download directory (must be in TRANSMISSION_ALLOWED_DOWNLOAD_DIRS)",
-          ),
-      },
-    },
-    async (args) => {
+  server.addTool({
+    name: "transmission_add_torrent",
+    description:
+      "Add a torrent from an http(s) .torrent URL or magnet link. download_dir must be allowlisted if multiple dirs are configured.",
+    parameters: z.object({
+      url: z.string().describe("Torrent URL (http/https) or magnet:? link"),
+      download_dir: z
+        .string()
+        .optional()
+        .describe(
+          "Absolute download directory (must be in TRANSMISSION_ALLOWED_DOWNLOAD_DIRS)",
+        ),
+    }),
+    execute: async (args) => {
       let downloadDir = "";
       try {
         const source = assertValidTorrentSource(args.url);
@@ -102,7 +88,7 @@ export function registerTransmissionTools(
             download_dir: downloadDir,
             error: msg,
           });
-          return errorResult(msg);
+          throw new UserError(msg);
         }
         const id = getTorrentIdFromAddResult(parsed.value);
         logMutation("add_torrent", {
@@ -112,73 +98,70 @@ export function registerTransmissionTools(
           torrent_id: id,
           duplicate: parsed.value["torrent-duplicate"] !== undefined,
         });
-        return jsonResult(parsed.value);
+        return jsonText(parsed.value);
       } catch (e) {
+        if (e instanceof UserError) {
+          throw e;
+        }
         const msg = e instanceof Error ? e.message : String(e);
         logMutation("add_torrent", {
           ok: false,
           download_dir: downloadDir || undefined,
           error: msg,
         });
-        return errorResult(msg);
+        throw new UserError(msg);
       }
     },
-  );
+  });
 
-  mcp.registerTool(
-    "transmission_start_torrent",
-    {
-      description: "Start a torrent by numeric id.",
-      inputSchema: {
-        id: z.number().int().positive(),
-      },
-    },
-    async ({ id }) => {
+  server.addTool({
+    name: "transmission_start_torrent",
+    description: "Start a torrent by numeric id.",
+    parameters: z.object({
+      id: z.number().int().positive(),
+    }),
+    execute: async ({ id }) => {
       try {
         await ops.startTorrent(client, id);
         logMutation("start", { ok: true, torrent_id: id });
-        return jsonResult({ ok: true, id });
+        return jsonText({ ok: true, id });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logMutation("start", { ok: false, torrent_id: id, error: msg });
-        return errorResult(msg);
+        throw new UserError(msg);
       }
     },
-  );
+  });
 
-  mcp.registerTool(
-    "transmission_stop_torrent",
-    {
-      description: "Stop a torrent by numeric id.",
-      inputSchema: {
-        id: z.number().int().positive(),
-      },
-    },
-    async ({ id }) => {
+  server.addTool({
+    name: "transmission_stop_torrent",
+    description: "Stop a torrent by numeric id.",
+    parameters: z.object({
+      id: z.number().int().positive(),
+    }),
+    execute: async ({ id }) => {
       try {
         await ops.stopTorrent(client, id);
         logMutation("stop", { ok: true, torrent_id: id });
-        return jsonResult({ ok: true, id });
+        return jsonText({ ok: true, id });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logMutation("stop", { ok: false, torrent_id: id, error: msg });
-        return errorResult(msg);
+        throw new UserError(msg);
       }
     },
-  );
+  });
 
-  mcp.registerTool(
-    "transmission_remove_torrent",
-    {
-      description:
-        "Remove a torrent. When delete_local_data is true, confirm_delete_local_data must be true (explicit acknowledgement).",
-      inputSchema: {
-        id: z.number().int().positive(),
-        delete_local_data: z.boolean().optional().default(false),
-        confirm_delete_local_data: z.boolean().optional().default(false),
-      },
-    },
-    async ({ id, delete_local_data, confirm_delete_local_data }) => {
+  server.addTool({
+    name: "transmission_remove_torrent",
+    description:
+      "Remove a torrent. When delete_local_data is true, confirm_delete_local_data must be true (explicit acknowledgement).",
+    parameters: z.object({
+      id: z.number().int().positive(),
+      delete_local_data: z.boolean().optional().default(false),
+      confirm_delete_local_data: z.boolean().optional().default(false),
+    }),
+    execute: async ({ id, delete_local_data, confirm_delete_local_data }) => {
       try {
         assertDeleteLocalDataConfirmed(delete_local_data, confirm_delete_local_data);
       } catch (e) {
@@ -189,7 +172,7 @@ export function registerTransmissionTools(
           delete_local_data,
           error: msg,
         });
-        return errorResult(msg);
+        throw new UserError(msg);
       }
       try {
         await ops.removeTorrent(client, id, delete_local_data);
@@ -198,7 +181,7 @@ export function registerTransmissionTools(
           torrent_id: id,
           delete_local_data,
         });
-        return jsonResult({ ok: true, id, delete_local_data });
+        return jsonText({ ok: true, id, delete_local_data });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logMutation("remove", {
@@ -207,28 +190,27 @@ export function registerTransmissionTools(
           delete_local_data,
           error: msg,
         });
-        return errorResult(msg);
+        throw new UserError(msg);
       }
     },
-  );
+  });
 
-  mcp.registerTool(
-    "transmission_get_session",
-    {
-      description: "Read Transmission session settings and statistics (read-only).",
-    },
-    async () => {
+  server.addTool({
+    name: "transmission_get_session",
+    description: "Read Transmission session settings and statistics (read-only).",
+    parameters: z.object({}),
+    execute: async () => {
       try {
         const session = await ops.getSession(client);
-        return jsonResult(session);
+        return jsonText(session);
       } catch (e) {
         if (e instanceof TransmissionRpcError) {
-          return errorResult(
+          throw new UserError(
             `Failed to get session: ${e.message}${e.rpcMessage ? ` (${e.rpcMessage})` : ""}`,
           );
         }
         throw e;
       }
     },
-  );
+  });
 }

@@ -1,20 +1,15 @@
-import { z } from "zod";
+import { prettifyError, z } from "zod";
 
-const torrentRefSchema = z
-  .object({
-    id: z.number().int().positive().optional(),
-    name: z.string().optional(),
-    hashString: z.string().optional(),
-  })
-  .passthrough();
+const torrentRefSchema = z.looseObject({
+  id: z.number().int().positive().optional(),
+  name: z.string().optional(),
+  hashString: z.string().optional(),
+});
 
-const addTorrentArgumentsSchema = z
-  .object({
-    "torrent-added": torrentRefSchema.optional(),
-    "torrent-duplicate": torrentRefSchema.optional(),
-  })
-  .passthrough();
-
+const addTorrentArgumentsSchema = z.looseObject({
+  "torrent-added": torrentRefSchema.optional(),
+  "torrent-duplicate": torrentRefSchema.optional(),
+});
 export type AddTorrentRpcArguments = z.infer<typeof addTorrentArgumentsSchema>;
 
 export function parseAddTorrentArguments(raw: unknown):
@@ -22,7 +17,8 @@ export function parseAddTorrentArguments(raw: unknown):
   | { ok: false; message: string } {
   const r = addTorrentArgumentsSchema.safeParse(raw);
   if (!r.success) {
-    return { ok: false, message: r.error.flatten().formErrors.join("; ") || r.error.message };
+    const message = prettifyError(r.error) || String(r.error);
+    return { ok: false, message };
   }
   return { ok: true, value: r.data };
 }

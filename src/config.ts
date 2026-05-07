@@ -53,19 +53,17 @@ const configSchema = z
     allowedDownloadDirs: z
       .string()
       .min(1, "TRANSMISSION_ALLOWED_DOWNLOAD_DIRS is required")
-      .superRefine((s, ctx) => {
-        const parts = s
-          .split(",")
-          .map((p) => p.trim())
-          .filter((p) => p.length > 0);
-        if (parts.length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message:
-              "TRANSMISSION_ALLOWED_DOWNLOAD_DIRS must list at least one path",
-          });
-        }
-      })
+      .refine(
+        (s) =>
+          s
+            .split(",")
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0).length > 0,
+        {
+          message:
+            "TRANSMISSION_ALLOWED_DOWNLOAD_DIRS must list at least one path",
+        },
+      )
       .transform((s) => {
         const parts = s
           .split(",")

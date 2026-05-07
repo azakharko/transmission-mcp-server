@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 
 import { createRequire } from "node:module";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { FastMCP } from "fastmcp";
 
 const packageVersion = (
   createRequire(import.meta.url)("../package.json") as { version: string }
 ).version;
 import { loadConfig } from "./config.js";
-import { registerTransmissionTools } from "./mcp/tools.js";
+import { addTransmissionTools } from "./mcp/tools.js";
 import { TransmissionRpcClient } from "./transmission/rpcClient.js";
 import * as ops from "./transmission/operations.js";
 import { normalizeDownloadPath } from "./validators/paths.js";
@@ -63,21 +62,18 @@ async function main(): Promise<void> {
 
   await warnIfSessionDownloadDirMismatch(client, config.allowedDownloadDirs);
 
-  const mcp = new McpServer(
-    {
-      name: "transmission-mcp-server",
-      version: packageVersion,
-    },
-    {
-      instructions:
-        "Transmission BitTorrent MCP: list/add/start/stop/remove torrents and read session over loopback JSON-RPC. Requires allowlisted download directories; destructive removes need explicit confirmation.",
-    },
-  );
+  const server = new FastMCP({
+    name: "transmission-mcp-server",
+    version: packageVersion as `${number}.${number}.${number}`,
+    instructions:
+      "Transmission BitTorrent MCP: list/add/start/stop/remove torrents and read session over loopback JSON-RPC. Requires allowlisted download directories; destructive removes need explicit confirmation.",
+  });
 
-  registerTransmissionTools(mcp, client, config);
+  addTransmissionTools(server, client, config);
 
-  const transport = new StdioServerTransport();
-  await mcp.connect(transport);
+  await server.start({
+    transportType: "stdio",
+  });
 }
 
 main().catch((err: unknown) => {
