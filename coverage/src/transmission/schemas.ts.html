@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>28/28</span>
+                <span class='fraction'>25/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.14% </span>
+                <span class="strong">77.77% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/7</span>
+                <span class='fraction'>7/9</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>28/28</span>
+                <span class='fraction'>25/25</span>
             </div>
         
             
@@ -94,14 +94,8 @@
 <a name='L29'></a><a href='#L29'>29</a>
 <a name='L30'></a><a href='#L30'>30</a>
 <a name='L31'></a><a href='#L31'>31</a>
-<a name='L32'></a><a href='#L32'>32</a>
-<a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L32'></a><a href='#L32'>32</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -112,44 +106,37 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { z } from "zod";
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { prettifyError, z } from "zod";
 &nbsp;
-const torrentRefSchema = z
-  .object({
-    id: z.number().int().positive().optional(),
-    name: z.string().optional(),
-    hashString: z.string().optional(),
-  })
-  .passthrough();
+const torrentRefSchema = z.looseObject({
+  id: z.number().int().positive().optional(),
+  name: z.string().optional(),
+  hashString: z.string().optional(),
+});
 &nbsp;
-const addTorrentArgumentsSchema = z
-  .object({
-    "torrent-added": torrentRefSchema.optional(),
-    "torrent-duplicate": torrentRefSchema.optional(),
-  })
-  .passthrough();
-&nbsp;
+const addTorrentArgumentsSchema = z.looseObject({
+  "torrent-added": torrentRefSchema.optional(),
+  "torrent-duplicate": torrentRefSchema.optional(),
+});
 export type AddTorrentRpcArguments = z.infer&lt;typeof addTorrentArgumentsSchema&gt;;
 &nbsp;
 export function parseAddTorrentArguments(raw: unknown):
@@ -157,15 +144,16 @@ export function parseAddTorrentArguments(raw: unknown):
   | { ok: false; message: string } {
   const r = addTorrentArgumentsSchema.safeParse(raw);
   if (!r.success) {
-    return { ok: false, message: r.error.flatten().formErrors.join("; ") || r.error.message };
+    const message = prettifyError(r.error<span class="branch-0 cbranch-no" title="branch not covered" >) || String(r.error);</span>
+    return { ok: false, message };
   }
   return { ok: true, value: r.data };
 }
 &nbsp;
 export function getTorrentIdFromAddResult(parsed: AddTorrentRpcArguments): number | undefined {
   const added = parsed["torrent-added"]?.["id"];
-  const dup = parsed["torrent-duplicate"<span class="branch-0 cbranch-no" title="branch not covered" >]?.["id"];</span>
-  const id = <span class="branch-0 cbranch-no" title="branch not covered" >added ?? dup;</span>
+  const dup = parsed["torrent-duplicate"]?.["id"];
+  const id = added ?? dup;
   return typeof id === "number" ? <span class="branch-0 cbranch-no" title="branch not covered" >id : undefined;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -175,7 +163,7 @@ export function getTorrentIdFromAddResult(parsed: AddTorrentRpcArguments): numbe
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-06T14:04:26.191Z
+                at 2026-05-07T18:34:15.619Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
