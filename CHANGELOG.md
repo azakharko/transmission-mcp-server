@@ -7,15 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-07
+
 ### Added
 
-- **Publishing:** `files` whitelist, `repository` / `bugs` / `homepage`, `prepare` (build on install) and `prepublishOnly` (lint + test before publish), `typecheck` and `test:coverage` scripts. [LICENSE](LICENSE) copyright notice completed.
-- **CI:** GitHub Actions workflow (lint, typecheck, test + coverage, build, Docker build). [Dependabot](.github/dependabot.yml) for npm and Actions.
-- **RPC reliability:** `TRANSMISSION_RPC_TIMEOUT_MS` (default 60s; `0` disables) with `AbortSignal.timeout` in [`TransmissionRpcClient`](src/transmission/rpcClient.ts).
-- **Listing:** `transmission_list_torrents` optional `ids` and `limit` (truncation metadata when capped).
-- **Validation:** Zod parsing for `torrent-add` RPC arguments in [`src/transmission/schemas.ts`](src/transmission/schemas.ts).
-- **Docs:** [docs/supply-chain.md](docs/supply-chain.md). **Docker:** builder/runner use `npm ci --ignore-scripts` so `prepare` does not run before sources are copied.
-- **Tests:** coverage thresholds (v8), schema and listTorrents unit tests, RPC timeout test.
+- **RPC:** configurable per-request HTTP timeout via **`TRANSMISSION_RPC_TIMEOUT_MS`** (default 60s; **`0`** disables) using **`AbortSignal.timeout`** in [`TransmissionRpcClient`](src/transmission/rpcClient.ts).
+- **Listing:** **`transmission_list_torrents`** accepts optional **`ids`** and **`limit`** (includes truncation metadata when results are capped).
+- **Validation:** Zod-backed parsing of **`torrent-add`** RPC arguments ([`src/transmission/schemas.ts`](src/transmission/schemas.ts)).
+- **Publishing:** npm **`files`** field, **`repository` / `bugs` / `homepage`**, **`prepare`** / **`prepublishOnly`**, and **`typecheck`** script ([`package.json`](package.json)).
+- **Documentation:** [`docs/supply-chain.md`](docs/supply-chain.md).
+- **CI:** GitHub Actions workflow (lint, typecheck, tests including coverage, build, Docker); [Dependabot](.github/dependabot.yml) for npm and GitHub Actions.
+
+### Changed
+
+- MCP server implementation now uses **[FastMCP](https://www.npmjs.com/package/fastmcp)** (**`fastmcp` ^4**) instead of calling **`@modelcontextprotocol/sdk`** directly. Tools register via **`addTransmissionTools`**; failures surface with **`UserError`**; successes return pretty-printed JSON text as before.
+
+- Raised the minimum **[Node.js](https://nodejs.org/)** runtime to **`>=25.0.0`** (`engines` in `package.json`). **Docker** builder and runner images use **`node:25-alpine`**.
+
+- Dependency stack: **`zod` ^4** (aligned with FastMCP); **removed** the direct **`@modelcontextprotocol/sdk`** dependency (still pulled transitively by FastMCP). Validation updates include **`z.looseObject`** for Transmission RPC shapes, **`prettifyError`** for parse errors, and **`refine`** (replacing deprecated **`superRefine`/`addIssue`** usage) on the download-dir allowlist string in **`loadConfig`**.
+
+- **TypeScript** [`tsconfig.json`](tsconfig.json): set **`compilerOptions.types: ["node"]`** so **`node:`** imports and builtins resolve reliably (including **`tsc` 6.x** inside minimal Docker installs).
+
+### Fixed
+
+- **Docker build:** [`Dockerfile`](Dockerfile) builder runs **`npm ci --ignore-scripts --include=dev`** so **devDependencies** (TypeScript, **`@types/node`**) are still installed when the environment behaves like **`NODE_ENV=production`**, avoiding **`tsc`** failures in CI and image builds.
+
+### Testing / tooling
+
+- **Vitest (`test:coverage`)**: global **`v8`** thresholds (lines, branches, statements, functions). **[`src/mcp/tools.ts`](src/mcp/tools.ts)** is **excluded** from coverage via [`vitest.config.ts`](vitest.config.ts).
+
+- Expanded tests (`index`, mutation log, MCP tool wiring stubs, Transmission operation helpers); **Vitest v4-compatible** mocks (`function`/class constructors instead of arrow-only **`mockImplementation`**) where **`new`** is required.
+
+### Housekeeping / repository
+
+- **`.gitignore`:** **`coverage/`** (Vitest HTML/JSON output).
+
+### Application entry
+
+- **`export async function main()`** and **`export function reportMainFailure()`** from [`src/index.ts`](src/index.ts). The process entry script only auto-starts **`main()`** when **`path.resolve(process.argv[1])`** matches **`path.resolve(fileURLToPath(import.meta.url))`** (works with **`npm`/`.bin`** shims and mixed path shapes).
 
 ## [1.0.0] - 2026-05-06
 
