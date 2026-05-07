@@ -4,7 +4,9 @@ FROM node:25-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Always install devDependencies (TypeScript, @types/node): host/CI often sets NODE_ENV=production for builds,
+# which would otherwise skip dev deps and break `npm run build`.
+RUN npm ci --ignore-scripts --include=dev
 
 COPY tsconfig.json ./
 COPY src ./src

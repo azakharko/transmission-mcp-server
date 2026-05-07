@@ -27,7 +27,7 @@
     "lint": "eslint src tests"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=25.0.0"
   },
   "repository": {
     "type": "git",
