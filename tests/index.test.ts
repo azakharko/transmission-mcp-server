@@ -5,10 +5,12 @@ const addToolMock = vi.fn();
 const rpcCallMock = vi.fn();
 
 vi.mock("fastmcp", () => ({
-  FastMCP: vi.fn().mockImplementation(() => ({
-    addTool: addToolMock,
-    start: startMock,
-  })),
+  FastMCP: vi.fn().mockImplementation(function _MockFastMCP() {
+    return {
+      addTool: addToolMock,
+      start: startMock,
+    };
+  }),
   UserError: class UserError extends Error {
     readonly name = "UserError";
   },
@@ -26,9 +28,9 @@ vi.mock("../src/config.js", () => ({
 }));
 
 vi.mock("../src/transmission/rpcClient.js", () => ({
-  TransmissionRpcClient: vi.fn().mockImplementation(() => ({
-    call: rpcCallMock,
-  })),
+  TransmissionRpcClient: vi.fn().mockImplementation(function _MockTransmissionRpcClient() {
+    return { call: rpcCallMock };
+  }),
 }));
 
 import { loadConfig } from "../src/config.js";
