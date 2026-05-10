@@ -1,0 +1,11 @@
+{
+  "transmission-mcp": {
+    "command": "node",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/dist/index.js"],
+    "env": {
+      "TRANSMISSION_RPC_USER": "${TRANSMISSION_RPC_USER}",
+      "TRANSMISSION_RPC_PASSWORD": "${TRANSMISSION_RPC_PASSWORD}",
+      "TRANSMISSION_ALLOWED_DOWNLOAD_DIRS": "${TRANSMISSION_ALLOWED_DOWNLOAD_DIRS}"
+    }
+  }
+}

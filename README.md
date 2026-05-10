@@ -34,7 +34,7 @@ Docker: [docs/docker.md](docs/docker.md).
 | **SSE** | No | Not exposed here. Clients such as [OpenClaw](https://docs.openclaw.ai/cli/mcp) may connect to *other* MCP servers over SSE; this repo does not ship an SSE server. |
 | **HTTP / streamable HTTP** | No | Same as SSE. Could be added in a future release. |
 
-For OpenClaw and most local editors, use **stdio** and point `command`/`args` at this server.
+For OpenClaw, prefer the [marketplace bundle install](#openclaw-marketplace-install-bundle) (stdio MCP merged into embedded Pi). For other local editors, use **stdio** and point `command`/`args` at this server.
 
 ## Installation
 
@@ -122,11 +122,44 @@ node dist/index.js
 
 Stderr carries startup warnings (for example allowlist vs session `download-dir`) and one JSON object per mutation line.
 
-## OpenClaw setup example
+## OpenClaw
 
 OpenClaw runs stdio MCP servers as child processes and may block risky **interpreter** env vars in the server `env` block (for example `NODE_OPTIONS`). Use normal `TRANSMISSION_*` variables for credentials and paths.
 
-Server names must match `^[a-zA-Z0-9_-]+$` (for example `transmission-mcp`).
+### OpenClaw marketplace install (bundle)
+
+This repository ships a [Claude-compatible plugin bundle](https://docs.openclaw.ai/plugins/bundles) (`.claude-plugin/plugin.json` + root `.mcp.json`) and a [`marketplace.json`](marketplace.json) so OpenClaw can install it from GitHub.
+
+**Install** (the first argument must match `plugins[].name` in `marketplace.json`):
+
+```bash
+openclaw plugins install transmission-mcp-server \
+  --marketplace https://github.com/azakharko/transmission-mcp-server.git
+```
+
+**Discover** entries before installing:
+
+```bash
+openclaw plugins marketplace list https://github.com/azakharko/transmission-mcp-server.git --json
+```
+
+**Without a marketplace file**, you can install the repo directly:
+
+```bash
+openclaw plugins install git:github.com/azakharko/transmission-mcp-server
+```
+
+After install, **restart the OpenClaw gateway** so the plugin loads ([plugin bundles](https://docs.openclaw.ai/plugins/bundles)).
+
+**Environment:** the bundle `.mcp.json` wires required variables from the **host** process into the MCP child via `${TRANSMISSION_RPC_USER}`, `${TRANSMISSION_RPC_PASSWORD}`, and `${TRANSMISSION_ALLOWED_DOWNLOAD_DIRS}`. Export those (or set them on the gateway) before starting OpenClaw—same semantics as [Required environment variables](#required-environment-variables). Optional variables (`TRANSMISSION_RPC_URL`, `TRANSMISSION_DEFAULT_DOWNLOAD_DIR`, `TRANSMISSION_RPC_TIMEOUT_MS`) are **not** set in `.mcp.json`; if you need them, define them in the gateway environment so the child inherits them.
+
+**Tool names in embedded Pi:** bundle MCP tools are exposed with a server prefix and delimiter, e.g. `transmission-mcp__transmission_list_torrents` instead of bare `transmission_list_torrents` ([MCP for Pi](https://docs.openclaw.ai/plugins/bundles#mcp-for-pi)). Profile allow/deny lists may use those prefixed names or the `bundle-mcp` plugin key.
+
+**Troubleshooting installs:** `OPENCLAW_PLUGIN_LIFECYCLE_TRACE=1 openclaw plugins install …` prints phase timings to stderr while keeping JSON output parseable ([Plugins CLI](https://docs.openclaw.ai/cli/plugins)).
+
+### OpenClaw manual MCP registry (`openclaw mcp set`)
+
+If you prefer the central `mcp.servers` registry instead of the bundle, set a stdio server yourself. Server names must match `^[a-zA-Z0-9_-]+$` (for example `transmission-mcp`).
 
 ```bash
 openclaw mcp set transmission-mcp '{

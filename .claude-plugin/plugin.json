@@ -1,0 +1,5 @@
+{
+  "name": "transmission-mcp-server",
+  "version": "1.0.1",
+  "description": "MCP server for Transmission BitTorrent: list/add/start/stop/remove torrents via loopback JSON-RPC only."
+}
