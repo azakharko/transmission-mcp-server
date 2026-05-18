@@ -4,7 +4,7 @@ Thank you for helping improve **transmission-mcp-server**.
 
 ## Development setup
 
-- **Node.js** ≥ 18.18
+- **Node.js** ≥ 25.0.0
 - Clone the repository, then:
 
 ```bash
