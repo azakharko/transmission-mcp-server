@@ -13,7 +13,16 @@ npm test
 npm run lint
 ```
 
-`npm install` runs **`prepare`** (which runs `npm run build`) so `dist/` exists for local runs and for installs from git; CI uses `npm ci` the same way.
+`npm install` runs **`prepare`** (which runs `npm run build` / `build:bundle`) so `dist/index.js` exists for local runs and npm publishes. **OpenClaw marketplace/git bundle installs do not run `prepare` or install dependencies**—they copy the repo as-is—so release commits must include an up-to-date bundled [`dist/index.js`](dist/index.js).
+
+Before tagging a release that affects runtime code:
+
+```bash
+npm run build:bundle
+git add dist/index.js dist/index.js.map
+```
+
+CI fails if `dist/` drifts from source after `npm run build:bundle`.
 
 To verify the container image locally:
 

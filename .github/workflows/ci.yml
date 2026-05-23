@@ -28,8 +28,11 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage
 
-      - name: Build
-        run: npm run build
+      - name: Build bundle
+        run: npm run build:bundle
+
+      - name: Verify committed dist matches bundle output
+        run: git diff --exit-code dist/
 
   docker:
     runs-on: ubuntu-latest

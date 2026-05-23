@@ -1,11 +1,11 @@
 {
   "name": "transmission-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Marketplace manifest for OpenClaw: Transmission MCP stdio server as a Claude-compatible bundle.",
   "plugins": [
     {
       "name": "transmission-mcp-server",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "description": "MCP server for Transmission (stdio JSON-RPC to daemon over loopback HTTP only).",
       "source": {
         "type": "path",

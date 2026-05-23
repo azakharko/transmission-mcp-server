@@ -51,7 +51,7 @@ Entry point: `dist/index.js`. Package bin: `transmission-mcp-server` (after `npm
 
 ### npx (after npm publish)
 
-When the package is published to the npm registry with a runnable `dist/` (or `prepare` build):
+When the package is published to the npm registry, the tarball includes a self-contained bundled `dist/index.js` (built during `prepare` before publish):
 
 ```bash
 TRANSMISSION_RPC_USER='…' \
@@ -130,12 +130,22 @@ OpenClaw runs stdio MCP servers as child processes and may block risky **interpr
 
 This repository ships a [Claude-compatible plugin bundle](https://docs.openclaw.ai/plugins/bundles) (`.claude-plugin/plugin.json` + root `.mcp.json`) and a [`marketplace.json`](marketplace.json) so OpenClaw can install it from GitHub.
 
+OpenClaw **copies the repository tree** for bundle installs—it does **not** run `npm install`, `prepare`, or install runtime dependencies. The repo therefore **commits a self-contained** [`dist/index.js`](dist/index.js) (esbuild bundle of the server and its npm deps) so the install smoke check and MCP stdio launch succeed.
+
 **Install** (the first argument must match `plugins[].name` in `marketplace.json`):
 
 ```bash
 openclaw plugins install transmission-mcp-server \
   --marketplace https://github.com/azakharko/transmission-mcp-server.git
 ```
+
+**Alternative (npm registry):**
+
+```bash
+openclaw plugins install npm:transmission-mcp-server@1.0.3 --pin
+```
+
+npm installs also skip install scripts; the published tarball must already include `dist/` (built during `npm publish` via `prepare`). Pin the version for reproducible installs.
 
 **Discover** entries before installing:
 

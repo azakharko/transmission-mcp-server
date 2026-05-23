@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-05-23
+
+### Fixed
+
+- **OpenClaw bundle installs:** ship a self-contained [`dist/index.js`](dist/index.js) (esbuild bundle) in git so marketplace/git installs pass the post-update `missing-main-entry` smoke check and MCP stdio startup works without `node_modules` runtime deps.
+
+### Changed
+
+- **Build:** `npm run build` now runs `build:bundle` (esbuild); `npm run build:types` runs `tsc` for type emission during development. CI verifies committed `dist/` stays in sync with source.
+- **OpenClaw docs:** [README.md](README.md) clarifies bundle vs npm install paths; [Contributing.md](Contributing.md) documents rebuilding and committing `dist/` before release.
+
 ## [1.0.2] - 2026-05-21
 
 ### Added
