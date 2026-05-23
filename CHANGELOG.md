@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-05-21
+
+### Added
+
+- OpenClaw / Claude-compatible plugin manifests: [.claude-plugin/plugin.json](.claude-plugin/plugin.json) and [marketplace.json](marketplace.json).
+- GitHub funding metadata: [.github/FUNDING.yml](.github/FUNDING.yml).
+
+### Changed
+
+- [Contributing.md](Contributing.md) refresh for release hygiene and contributor expectations.
+
+### Housekeeping / dependencies
+
+- Dev tooling bumps: ESLint **10.4.x**, `typescript-eslint` **8.59.4**, Vitest **`@vitest/coverage-v8` / `vitest` ~4.1.7**, `@types/node` **25.9.x**.
+
 ## [1.0.1] - 2026-05-07
 
 ### Added
